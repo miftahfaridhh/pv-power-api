@@ -304,14 +304,20 @@ class getPrediction(Resource):
         args = parser.parse_args()
         print(args['date'],args['sitecode'],args['model'])
 
+        datee = int(args['date']) - 1
+
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
-        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {args['date']} AND model = '{args['model']}'"
+        # db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {args['date']} AND model = '{args['model']}'"
+        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {datee} AND model = '{args['model']}'"
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
+        print(args['date'])
+
         ############## ini command buat ambil data true power tolong dicek lg ridh
-        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {args['date']}"
+        # db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {args['date']}"
+        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = '20230223'"
         db_cursor.execute(db_command2)
         response2 = db_cursor.fetchall()
 
@@ -333,10 +339,10 @@ class getPrediction(Resource):
         data2 = []
         sumPower2 = 0
         for qq in range(5,20):
-            # sumPower2 += float(response2[qq][0])
-            # kk = np.array(float(response2[qq][0]))
-            sumPower2 += 0
-            kk = 0
+            sumPower2 += float(response2[qq][0])
+            kk = np.array(float(response2[qq][0]))
+            # sumPower2 += 0
+            # kk = 0
             data2.append(int(np.around(kk, 2)))
 
         pred = {"type": "예측",
@@ -393,7 +399,7 @@ def predPlot():
 
 if __name__ == "__main__":
     scheduler.start()
-    app.run(debug=True,host='0.0.0.0', port=5000)
+    app.run(debug=True,host='localhost', port=5000)
     triggerKMA = CronTrigger(second=0, minute=15, hour=2)
     triggerPredict = CronTrigger(second=0, minute=30, hour=2)
     jobKMA = scheduler.add_job(update_KMA,triggerKMA)
