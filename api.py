@@ -339,8 +339,8 @@ class getPrediction(Resource):
         data2 = []
         sumPower2 = 0
         for qq in range(5,20):
-            sumPower2 += float(response2[qq][0])
-            kk = np.array(float(response2[qq][0]))
+            sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
+            kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
             # sumPower2 += 0
             # kk = 0
             data2.append(int(np.around(kk, 2)))

@@ -146,10 +146,10 @@
 
         var context = document.getElementById("myChart").getContext("2d");
 
+        var chartExist = Chart.getChart("myChart"); // <canvas> id
+        if (chartExist != undefined) chartExist.destroy();
+
         var myChart = new Chart(context, config1);
-        myChart.clear();
-        myChart.destroy();
-        myChart = new Chart(context, config1);
       }
 
       var e = document.getElementById("model");
@@ -244,9 +244,9 @@
           config1.data.datasets[0].data.push(predict[key]);
         });
 
-        // Object.keys(truepow).forEach((key2) => {
-        //   config1.data.datasets[1].data.push(truepow[key2]);
-        // });
+        Object.keys(truepow).forEach((key2) => {
+          config1.data.datasets[1].data.push(truepow[key2]);
+        });
       }
     </script>
   </body>
