@@ -125,7 +125,7 @@
               label: "실측",
               fill: false,
               hidden: false,
-              data: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               backgroundColor: ["rgb(41, 128, 185)"],
               borderWidth: 1,
             },
@@ -133,7 +133,7 @@
               label: "예측",
               fill: false,
               hidden: false,
-              data: [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               backgroundColor: ["rgb(26, 188, 156)"],
               borderWidth: 1,
             },
@@ -147,6 +147,9 @@
         var context = document.getElementById("myChart").getContext("2d");
 
         var myChart = new Chart(context, config1);
+        myChart.clear();
+        myChart.destroy();
+        myChart = new Chart(context, config1);
       }
 
       var e = document.getElementById("model");
@@ -234,17 +237,16 @@
 
         Object.keys(predict).forEach((key) => {
           config1.data.datasets[0].data.pop();
-          config1.data.labels.pop();
-          config1.data.datasets[0].data.push(predict[key]);
-          config1.data.labels.push(predict[key]);
+          config1.data.datasets[1].data.pop();
         });
 
-        Object.keys(truepow).forEach((key2) => {
-          config1.data.datasets[1].data.pop();
-          config1.data.labels.pop();
-          config1.data.datasets[1].data.push(truepow[key2]);
-          config1.data.labels.push(truepow[key2]);
+        Object.keys(predict).forEach((key) => {
+          config1.data.datasets[0].data.push(predict[key]);
         });
+
+        // Object.keys(truepow).forEach((key2) => {
+        //   config1.data.datasets[1].data.push(truepow[key2]);
+        // });
       }
     </script>
   </body>
