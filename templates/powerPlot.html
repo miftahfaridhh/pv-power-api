@@ -98,73 +98,59 @@
       var predictionPower = [],
         truePower = [];
 
+      config1 = {
+        type: "bar", // 차트의 형태
+        data: {
+          // 차트에 들어갈 데이터
+          labels: [
+            //x 축
+            "05시",
+            "06시",
+            "07시",
+            "08시",
+            "09시",
+            "10시",
+            "11시",
+            "12시",
+            "13시",
+            "14시",
+            "15시",
+            "16시",
+            "17시",
+            "18시",
+            "19시",
+          ],
+          datasets: [
+            {
+              label: "실측",
+              fill: false,
+              hidden: false,
+              data: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              backgroundColor: ["rgb(41, 128, 185)"],
+              borderWidth: 1,
+            },
+            {
+              label: "예측",
+              fill: false,
+              hidden: false,
+              data: [0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              backgroundColor: ["rgb(26, 188, 156)"],
+              borderWidth: 1,
+            },
+          ],
+        },
+      };
+
       async function plotChart() {
         await getPlotData();
 
         var context = document.getElementById("myChart").getContext("2d");
-        var myChart = new Chart(context, {
-          type: "bar", // 차트의 형태
-          data: {
-            // 차트에 들어갈 데이터
-            labels: [
-              //x 축
-              "05시",
-              "06시",
-              "07시",
-              "08시",
-              "09시",
-              "10시",
-              "11시",
-              "12시",
-              "13시",
-              "14시",
-              "15시",
-              "16시",
-              "17시",
-              "18시",
-              "19시",
-            ],
-            datasets: [
-              {
-                label: "실측",
-                fill: false,
-                data: predictionPower,
-                backgroundColor: ["rgb(41, 128, 185)"],
-                borderWidth: 1,
-              },
-              {
-                label: "예측",
-                fill: false,
-                data: truePower,
-                backgroundColor: ["rgb(26, 188, 156)"],
-                borderWidth: 1,
-              },
-            ],
-          },
-        });
+
+        var myChart = new Chart(context, config1);
       }
 
-      // plotChart()
-
       var e = document.getElementById("model");
-      // function onChange() {
-      //     var value = e.value;
-      //     var text = e.options[e.selectedIndex].text;
-      //     console.log(value, text);
-      //     var your_data = {'date' : '20230215',
-      //                      'sitecode': '123456789',
-      //                     'model': text}
 
-      //     fetch(`${window.origin}/data/api/powerpred`, {
-      //         method: "POST",
-      //         credentials: "include",
-      //         body: JSON.stringify(your_data),
-      //         cache: "no-cache",
-      //         headers: new Headers({
-      //         "content-type": "application/json"
-      //         })
-      //     })
-      // }
       e.onchange = plotChart;
       plotChart();
 
@@ -174,8 +160,8 @@
         var value = e.value;
         var text = e.options[e.selectedIndex].text;
         var today = new Date();
-        var dd = String(today.getDate()).padStart(2, '0');
-        var mm = String(today.getMonth() + 1).padStart(2, '0');
+        var dd = String(today.getDate()).padStart(2, "0");
+        var mm = String(today.getMonth() + 1).padStart(2, "0");
         var yyyy = today.getFullYear();
 
         var dateNow = yyyy + mm + dd;
@@ -197,7 +183,6 @@
         });
         const barChatData = await response.json();
 
-        // const pred = barChatData.data.map((x) => x.employee_salary)
         console.log(barChatData.data);
 
         const obj = JSON.parse(barChatData.data);
@@ -207,17 +192,16 @@
         const table = document.getElementById("powerData");
         var counter = 0;
         var counter2 = 0;
+
         if (table.rows.length == 0) {
           let row = table.insertRow();
           Object.keys(obj.pred).forEach((element) => {
-            // console.log(obj.pred[element]);
             let date = row.insertCell(counter);
             date.innerHTML = obj.pred[element];
             counter += 1;
           });
           let row2 = table.insertRow();
           Object.keys(obj.true).forEach((element2) => {
-            // console.log(obj.true[element]);
             let date2 = row2.insertCell(counter2);
             date2.innerHTML = obj.true[element2];
             counter2 += 1;
@@ -227,26 +211,40 @@
           table.deleteRow(0);
           let row = table.insertRow();
           Object.keys(obj.pred).forEach((element) => {
-            // console.log(obj.pred[element]);
             let date = row.insertCell(counter);
             date.innerHTML = obj.pred[element];
             counter += 1;
           });
           let row2 = table.insertRow();
           Object.keys(obj.true).forEach((element2) => {
-            // console.log(obj.true[element]);
             let date2 = row2.insertCell(counter2);
             date2.innerHTML = obj.true[element2];
             counter2 += 1;
           });
         }
+        var predict = Object.fromEntries(
+          Object.entries(obj.pred).filter(([key]) => key.includes("hr"))
+        );
 
-        // const age = barChatData.data.map((x) => x.employee_age)
-        // const name = barChatData.data.map((x) => x.employee_name)
+        var truepow = Object.fromEntries(
+          Object.entries(obj.true).filter(([key]) => key.includes("hr"))
+        );
 
-        // employeeSalaryData = salary
-        // employeeAgeData = age
-        // employeeLabel = name
+        console.log(predict, truepow);
+
+        Object.keys(predict).forEach((key) => {
+          config1.data.datasets[0].data.pop();
+          config1.data.labels.pop();
+          config1.data.datasets[0].data.push(predict[key]);
+          config1.data.labels.push(predict[key]);
+        });
+
+        Object.keys(truepow).forEach((key2) => {
+          config1.data.datasets[1].data.pop();
+          config1.data.labels.pop();
+          config1.data.datasets[1].data.push(truepow[key2]);
+          config1.data.labels.push(truepow[key2]);
+        });
       }
     </script>
   </body>
