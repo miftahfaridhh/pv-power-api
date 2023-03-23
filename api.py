@@ -302,7 +302,7 @@ def truePower():
 class getPrediction(Resource):
     def post(self):
         args = parser.parse_args()
-        print(args['date'],args['sitecode'],args['model'])
+        # print(args['date'],args['sitecode'],args['model'])
 
         datee = int(args['date']) - 1
 
@@ -313,7 +313,7 @@ class getPrediction(Resource):
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
-        print(args['date'])
+        # print(args['date'])
 
         ############## ini command buat ambil data true power tolong dicek lg ridh
         # db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {args['date']}"
@@ -386,7 +386,7 @@ class getPrediction(Resource):
 
         json_response =  {'pred':pred, 'true':true}
 
-        print(json_response)
+        # print(json_response)
 
         json_response = json.dumps(json_response)
 
