@@ -17,8 +17,8 @@ from tensorflow.keras.metrics import MeanAbsoluteError as MAEMetrics
 from tensorflow.keras.metrics import MeanSquaredError as MSEMetrics
 import tensorflow_addons as tfa
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
+from flask import Flask
+from flask_apscheduler import APScheduler
 import time
 import requests
 import json
@@ -26,11 +26,13 @@ import json
 import threading
 import mysql.connector
 
-
 app = Flask(__name__)
 api = Api(app)
 
-scheduler = BackgroundScheduler(daemon=True)
+scheduler = APScheduler()
+scheduler.api_enabled = True
+scheduler.init_app(app)
+scheduler.start()
 
 parser = reqparse.RequestParser()
 parser.add_argument('date')
@@ -111,6 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
+@scheduler.task('cron', id='prediction', minute='30', hour='2')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -198,7 +201,9 @@ def predict():
         db_cursor = db_conn.cursor()
 
         datenext = datetime.strptime(dateToday, '%Y%m%d')
+        print('START PREDICTING !!!!!!!!!!!!!!!', k)
         for m in range(24):
+            print('INSERT DATA TO DB', m)
             sqlKMA = f"INSERT IGNORE INTO predictionShort (date,nx,ny,model,predictionValue)\
                     VALUES ('{datenext}', '100', '91', '{k}', {pred[0][m]})"
             db_cursor.execute(sqlKMA) 
@@ -220,11 +225,12 @@ def post_data_kma(inputValue):
     db_cursor.close()
     db_conn.close()
 
+@scheduler.task('cron', id='getWeather', minute='15', hour='2')
 def update_KMA():
     accessURL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
     serviceKey = "sEKoH9gpdiVmk%2Fam1yBhtISsAHaDs9hEbx8sPdz%2BhHDnrXoxmn9VDdJAvJdZcoxgdEXuNdav16beMDFszEQgLw%3D%3D"
 
-    dateToday = datetime.datetime.now().date().strftime('%Y%m%d')
+    dateToday = datetime.now().date().strftime('%Y%m%d')
     numOfRows = str(1000)
     pageNo = str(1)
     dataType = 'JSON'
@@ -279,7 +285,8 @@ def inserTruePow(inputvalue):
     db_cursor.close()
     db_conn.close()
 
-def treadTruePow():
+@scheduler.task('cron', id='getTruePower', minute='0')
+def truePower():
     conn = mysql.connector.connect(
         host="kmsg007.iptime.org",
         port="3306",
@@ -295,29 +302,20 @@ def treadTruePow():
     inserTruePow(val)
     cur.close()
     conn.close()
-        
-def truePower():
-    threading.Thread(target=treadTruePow, args=()).start()
 
 class getPrediction(Resource):
     def post(self):
         args = parser.parse_args()
-        # print(args['date'],args['sitecode'],args['model'])
-
-        datee = int(args['date']) - 1
+        print(args['date'],args['sitecode'],args['model'], time.time())
 
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
-        # db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {args['date']} AND model = '{args['model']}'"
-        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {datee} AND model = '{args['model']}'"
+        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {int(args['date'])-3} AND model = '{args['model']}'"
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
-        # print(args['date'])
-
         ############## ini command buat ambil data true power tolong dicek lg ridh
-        # db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {args['date']}"
-        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = '20230223'"
+        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])-3}"
         db_cursor.execute(db_command2)
         response2 = db_cursor.fetchall()
 
@@ -330,8 +328,12 @@ class getPrediction(Resource):
         sumPower = 0
         listData = []
         for qq in range(5,20):
-            sumPower += float(response[qq][0])
-            kk = np.array(float(response[qq][0]))
+            if not response:
+                sumPower += np.array(float(0))
+                kk = np.array(float(0))
+            else:
+                sumPower += float(response[qq][0])
+                kk = np.array(float(response[qq][0]))
             listData.append(np.around(kk, 2))
 
         sumPower = np.around(sumPower,2)
@@ -339,13 +341,15 @@ class getPrediction(Resource):
         data2 = []
         sumPower2 = 0
         for qq in range(5,20):
-            if (response2[qq][0]==0):
+            if not response:
                 sumPower2 += 0
                 kk = 0
             else :
                 sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
                 kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
             data2.append(int(np.around(kk, 2)))
+        
+        errRate = str(round(((sumPower-sumPower2)/sumPower2*100),2))+"%"
 
         pred = {"type": "예측",
                         "hr5": listData[0],
@@ -364,7 +368,7 @@ class getPrediction(Resource):
                         "hr18": listData[13],
                         "hr19": listData[14],
                         "sum": sumPower,
-                        "erRate": "-"}
+                        "erRate": errRate}
         true = {"type": "진실",
                         "hr5": data2[0],
                         "hr6": data2[1],
@@ -400,13 +404,12 @@ def predPlot():
     return render_template('powerPlot.html')
 
 if __name__ == "__main__":
-    scheduler.start()
-    app.run(debug=True,host='localhost', port=5000)
-    triggerKMA = CronTrigger(second=0, minute=15, hour=2)
-    triggerPredict = CronTrigger(second=0, minute=30, hour=2)
-    jobKMA = scheduler.add_job(update_KMA,triggerKMA)
-    jobPredict = scheduler.add_job(predict,triggerPredict)
+    app.run(debug=True,host='localhost', port=5000,use_reloader=False)
+    # triggerKMA = CronTrigger(second=0, minute=22, hour=17)
+    # triggerPredict = CronTrigger(second=0, minute=25, hour=17)
+    # jobKMA = scheduler.add_job(update_KMA,triggerKMA)
+    # jobPredict = scheduler.add_job(predict,triggerPredict)
 
-    # ADD BY FARIDH
-    triggerTruePow = CronTrigger(second=0, minute=0)
-    jobTruePow = scheduler.add_job(truePower,triggerTruePow)
+    # # ADD BY FARIDH
+    # triggerTruePow = CronTrigger(second=0, minute=0)
+    # jobTruePow = scheduler.add_job(truePower,triggerTruePow)
