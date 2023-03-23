@@ -317,7 +317,7 @@ class getPrediction(Resource):
 
         ############## ini command buat ambil data true power tolong dicek lg ridh
         # db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {args['date']}"
-        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {datee}"
+        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = '20230223'"
         db_cursor.execute(db_command2)
         response2 = db_cursor.fetchall()
 
@@ -339,10 +339,12 @@ class getPrediction(Resource):
         data2 = []
         sumPower2 = 0
         for qq in range(5,20):
-            sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
-            kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
-            # sumPower2 += 0
-            # kk = 0
+            if (response2[qq][0]==0):
+                sumPower2 += 0
+                kk = 0
+            else :
+                sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
+                kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
             data2.append(int(np.around(kk, 2)))
 
         pred = {"type": "예측",
