@@ -113,7 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='50', hour='15')
+@scheduler.task('cron', id='prediction', minute='59', hour='15')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -188,8 +188,8 @@ def predict():
 
         # denorm process
         for l in range(24):
-            # pred_std = (prediction_result[0][l] - (-1)) / (1 - (-1))
-            pred[0][l] = (prediction_result[0][l] * (1 - (-1))) + (-1)
+            pred_std = (prediction_result[0][l] - (-1)) / (1 - (-1))
+            pred[0][l] = (pred_std * (99-0)) + 0
 
         print(pred)
 
@@ -310,7 +310,7 @@ class getPrediction(Resource):
 
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
-        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {int(args['date'])-3} AND model = '{args['model']}'"
+        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {int(args['date'])} AND model = '{args['model']}'"
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
@@ -349,7 +349,7 @@ class getPrediction(Resource):
                 kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
             data2.append(int(np.around(kk, 2)))
         
-        errRate = str(round(((sumPower-sumPower2)/sumPower2*100),2))+"%"
+        errRate = str(round((abs(sumPower-sumPower2)/sumPower2*100),2))+"%"
 
         pred = {"type": "예측",
                         "hr5": listData[0],
