@@ -113,7 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='30', hour='2')
+@scheduler.task('cron', id='prediction', minute='50', hour='15')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -188,8 +188,8 @@ def predict():
 
         # denorm process
         for l in range(24):
-            pred_std = (prediction_result[0][l] - (-1)) / (1 - (-1))
-            pred[0][l] = (pred_std * (99-0)) + 0
+            # pred_std = (prediction_result[0][l] - (-1)) / (1 - (-1))
+            pred[0][l] = (prediction_result[0][l] * (1 - (-1))) + (-1)
 
         print(pred)
 
