@@ -315,7 +315,7 @@ class getPrediction(Resource):
         response = db_cursor.fetchall()
 
         ############## ini command buat ambil data true power tolong dicek lg ridh
-        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])-3}"
+        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])-1}"
         db_cursor.execute(db_command2)
         response2 = db_cursor.fetchall()
 
