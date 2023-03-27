@@ -113,7 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='56', hour='15')
+@scheduler.task('cron', id='prediction', minute='7', hour='16')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -189,7 +189,11 @@ def predict():
         # denorm process
         for l in range(24):
             pred_std = (prediction_result[0][l] - (-1)) / (1 - (-1))
-            pred[0][l] = (pred_std * (99-0)) + 0
+            kkk = (pred_std * (99-0)) + 0
+            if (kkk) < 0:
+                pred[0][l] = 0
+            else :
+                pred[0][l] = kkk
 
         print(pred)
 
@@ -342,8 +346,8 @@ class getPrediction(Resource):
         sumPower2 = 0
         for qq in range(5,20):
             if not response:
-                sumPower2 += 0
-                kk = 0
+                sumPower += np.array(float(0))
+                kk = np.array(float(0))
             else :
                 sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
                 kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
