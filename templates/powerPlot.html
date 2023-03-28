@@ -43,6 +43,14 @@
         <div class="table-wrap">
           <table class="table">
             <caption>
+              <input
+                type="date"
+                id="datee"
+                name="trip-start"
+                value="2023-03-28"
+                min="2023-01-01"
+                max="2023-12-31"
+              />
               <div class="form-group">
                 <select class="form-control" id="model">
                   <option value="1" selected="selected">LSTM</option>
@@ -155,12 +163,17 @@
       e.onchange = plotChart;
       plotChart();
 
+      var datee = document.getElementById("datee");
+      datee.onchange = plotChart;
+      plotChart();
+
       async function getPlotData() {
         const apiUrl = `${window.origin}/data/api/powerpred`;
 
         var value = e.value;
         var text = e.options[e.selectedIndex].text;
-        var today = new Date();
+        var today = new Date(datee.value);
+        console.log(today);
         var dd = String(today.getDate()).padStart(2, "0");
         var mm = String(today.getMonth() + 1).padStart(2, "0");
         var yyyy = today.getFullYear();

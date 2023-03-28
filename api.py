@@ -349,8 +349,14 @@ class getPrediction(Resource):
                 sumPower += np.array(float(0))
                 kk = np.array(float(0))
             else :
-                sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
-                kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
+                if not response2[qq][0]:
+                    sumPower += np.array(float(0))
+                    print("if ", sumPower)
+                    kk = np.array(float(0))
+                    print("else ", kk)
+                else:
+                    sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
+                    kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
             data2.append(int(np.around(kk, 2)))
         
         errRate = str(round((abs(sumPower-sumPower2)/sumPower2*100),2))+"%"
