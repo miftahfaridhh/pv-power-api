@@ -289,7 +289,7 @@ def inserTruePow(inputvalue):
     db_cursor.close()
     db_conn.close()
 
-@scheduler.task('cron', id='getTruePower', minute='0')
+@scheduler.task('cron', id='getTruePower', minute='10', hour='*')
 def truePower():
     conn = mysql.connector.connect(
         host="kmsg007.iptime.org",
@@ -318,8 +318,7 @@ class getPrediction(Resource):
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
-        ############## ini command buat ambil data true power tolong dicek lg ridh
-        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])-1}"
+        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])}"
         db_cursor.execute(db_command2)
         response2 = db_cursor.fetchall()
 
@@ -345,18 +344,12 @@ class getPrediction(Resource):
         data2 = []
         sumPower2 = 0
         for qq in range(5,20):
-            if not response:
-                sumPower += np.array(float(0))
-                kk = np.array(float(0))
+            if qq < len(response2):
+                sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
+                kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
             else :
-                if not response2[qq][0]:
-                    sumPower += np.array(float(0))
-                    print("if ", sumPower)
-                    kk = np.array(float(0))
-                    print("else ", kk)
-                else:
-                    sumPower2 += float(abs(response2[qq][0] - response2[qq-1][0]))
-                    kk = np.array(float(abs(response2[qq][0] - response2[qq-1][0])))
+                sumPower2 += np.array(float(0))
+                kk = np.array(float(0))
             data2.append(int(np.around(kk, 2)))
         
         errRate = str(round((abs(sumPower-sumPower2)/sumPower2*100),2))+"%"
