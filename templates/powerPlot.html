@@ -47,7 +47,6 @@
                 type="date"
                 id="datee"
                 name="trip-start"
-                value="2023-03-28"
                 min="2023-01-01"
                 max="2023-12-31"
               />
@@ -103,6 +102,10 @@
     <script>
       var predictionPower = [],
         truePower = [];
+
+      var datee = document.getElementById("datee");
+
+      datee.valueAsDate = new Date();
 
       config1 = {
         type: "bar", // 차트의 형태
@@ -163,7 +166,6 @@
       e.onchange = plotChart;
       plotChart();
 
-      var datee = document.getElementById("datee");
       datee.onchange = plotChart;
       plotChart();
 
