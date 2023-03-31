@@ -314,11 +314,11 @@ class getPrediction(Resource):
 
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
-        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {int(args['date'])} AND model = '{args['model']}'"
+        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {int(args['date'])} AND model = '{args['model']}' ORDER BY `date` ASC"
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
-        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])}"
+        db_command2 = f"SELECT F_all_power FROM `TruePow` WHERE DATE(D_date) = {int(args['date'])} ORDER BY `D_date` ASC"
         db_cursor.execute(db_command2)
         response2 = db_cursor.fetchall()
 
