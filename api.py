@@ -204,7 +204,7 @@ def predict():
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
 
-        datenext = datetime.strptime(dateToday, '%Y%m%d')
+        datenext = datetime.strptime(dateToday, '%Y%m%d') +  + timedelta(days=1)
         print('START PREDICTING !!!!!!!!!!!!!!!', k)
         for m in range(24):
             print('INSERT DATA TO DB', m)
