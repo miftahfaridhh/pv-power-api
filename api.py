@@ -354,6 +354,9 @@ class getPrediction(Resource):
         
         errRate = str(round((abs(sumPower-sumPower2)/sumPower2*100),2))+"%"
 
+        # sumPower = True Power Generation 
+        # sumPower = Prediction Power Generation 
+
         pred = {"type": "예측",
                         "hr5": listData[0],
                         "hr6": listData[1],
