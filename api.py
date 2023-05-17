@@ -113,7 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='45', hour='2')
+@scheduler.task('cron', id='prediction', minute='50', hour='20')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -229,7 +229,7 @@ def post_data_kma(inputValue):
     db_cursor.close()
     db_conn.close()
 
-@scheduler.task('cron', id='getWeather', minute='30', hour='2')
+@scheduler.task('cron', id='getWeather', minute='47', hour='20')
 def update_KMA():
     accessURL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
     serviceKey = "sEKoH9gpdiVmk%2Fam1yBhtISsAHaDs9hEbx8sPdz%2BhHDnrXoxmn9VDdJAvJdZcoxgdEXuNdav16beMDFszEQgLw%3D%3D"
