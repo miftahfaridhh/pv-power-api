@@ -113,7 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='50', hour='20')
+@scheduler.task('cron', id='prediction', minute='36', hour='20')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -204,7 +204,8 @@ def predict():
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
 
-        datenext = datetime.strptime(dateToday, '%Y%m%d') +  + timedelta(days=1)
+        # datenext = datetime.strptime(dateToday, '%Y%m%d') + timedelta(days=1)
+        datenext = datetime.strptime(dateToday, '%Y%m%d')
         print('START PREDICTING !!!!!!!!!!!!!!!', k)
         for m in range(24):
             print('INSERT DATA TO DB', m)
@@ -229,7 +230,7 @@ def post_data_kma(inputValue):
     db_cursor.close()
     db_conn.close()
 
-@scheduler.task('cron', id='getWeather', minute='47', hour='20')
+@scheduler.task('cron', id='getWeather', minute='24', hour='20')
 def update_KMA():
     accessURL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
     serviceKey = "sEKoH9gpdiVmk%2Fam1yBhtISsAHaDs9hEbx8sPdz%2BhHDnrXoxmn9VDdJAvJdZcoxgdEXuNdav16beMDFszEQgLw%3D%3D"

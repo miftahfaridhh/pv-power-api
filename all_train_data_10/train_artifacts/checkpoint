@@ -1,0 +1,2 @@
+model_checkpoint_path: "RNN-PVPowerGeneration-Short-24Hours-24h_sklearn_minmax_trainShort.pkl"
+all_model_checkpoint_paths: "RNN-PVPowerGeneration-Short-24Hours-24h_sklearn_minmax_trainShort.pkl"
