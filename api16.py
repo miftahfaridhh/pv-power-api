@@ -399,7 +399,7 @@ def predPlot():
     return render_template('powerPlot.html')
 
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0', port=5001,use_reloader=False)
+    app.run(debug=True,host='0.0.0.0', port=5006,use_reloader=False)
     # triggerKMA = CronTrigger(second=0, minute=22, hour=17)
     # triggerPredict = CronTrigger(second=0, minute=25, hour=17)
     # jobKMA = scheduler.add_job(update_KMA,triggerKMA)
