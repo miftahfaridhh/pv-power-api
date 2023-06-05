@@ -113,7 +113,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='36', hour='20')
+@scheduler.task('cron', id='prediction', minute='50', hour='09')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -125,7 +125,12 @@ def predict():
         dateToday = datetime.now().date().strftime('%Y%m%d')
         print(dateToday)
 
-        db_command = f"SELECT * FROM dataWeatherShortAPI WHERE fcstDate = {dateToday}"
+        dateTday = datetime.now().date()
+        dateYst = (dateTday - timedelta(days=1)).strftime('%Y-%m-%d')
+        dateYstt = (dateTday - timedelta(days=2)).strftime('%Y-%m-%d')
+        dateTday = dateTday.strftime('%Y-%m-%d')
+
+        db_command = f"SELECT * FROM weatherdataENS10 WHERE D_date BETWEEN '{dateYst} 10:00:00' AND '{dateTday} 10:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY 'D_date' ASC"
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
@@ -134,28 +139,36 @@ def predict():
 
         print(response)
 
-        df = pd.DataFrame(response, columns=['baseDate','baseTime','fcstDate','fcstTime','nx','ny','TMP','UUU','VVV','VEC','WSD','SKY','PTY','POP','WAV','PCP','REH','SNO'])
+        df = pd.DataFrame(response, columns=['C_scode','D_date','I_dev','I_comyn','F_temp','F_humidity','F_wind_direction','F_wind_speed',
+                                             'F_precipitation','F_insolation_slope','F_insolation_horizon','F_atmosp_press',
+                                             'F_dewpoint','F_dat1', 'F_dat2', 'F_dat3', 'F_dat4', 'F_dat5'])
+        df = df.rename(columns={'D_date':'DateTime','I_comyn':'Communication','F_temp':'Temperature','F_humidity':'Humidity',
+                                'F_wind_direction':'WindDirection','F_wind_speed':'WindSpeed','F_precipitation':'Precipitation',
+                                'F_insolation_slope':'InsolationSlope','F_insolation_horizon':'InsolationHorizon','F_atmosp_press':'AtmosphericPressure',
+                                'F_dewpoint':'DewPoint'})
 
-        df['TMP'] = pd.to_numeric(df['TMP'])
-        df['VEC'] = pd.to_numeric(df['VEC'])
-        df['WSD'] = pd.to_numeric(df['WSD'])
-        df['PCP'] = pd.to_numeric(df['SKY'])
-        df['REH'] = pd.to_numeric(df['REH'])
-
-        df_ws = df.pop('WSD')
-        df_wd_rad = df.pop('VEC')
-
-        df_wd_rad = df_wd_rad*np.pi/180
-
-        df['wx'] = df_ws * np.cos(df_wd_rad)
-        df['wy'] = df_ws * np.sin(df_wd_rad)
-
-        df = df.drop(['baseDate','baseTime','fcstDate','fcstTime','nx','ny','UUU','VVV','PTY','POP','WAV','PCP','SNO'],axis=1)
+        df['Temperature'] = pd.to_numeric(df['Temperature'])
+        df['Humidity'] = pd.to_numeric(df['Humidity'])
+        df['WindSpeed'] = pd.to_numeric(df['WindSpeed'])
+        df['InsolationSlope'] = pd.to_numeric(df['InsolationSlope'])
+        df['InsolationHorizon'] = pd.to_numeric(df['InsolationHorizon'])
 
         print(df.describe())
 
-        df.columns = ['temperature','solarRadiation','humidity','wx','wy']
-        df = df[['temperature','wx','wy','humidity','solarRadiation']]
+        # df_ws = df.pop('WSD')
+        # df_wd_rad = df.pop('VEC')
+
+        # df_wd_rad = df_wd_rad*np.pi/180
+
+        # df['wx'] = df_ws * np.cos(df_wd_rad)
+        # df['wy'] = df_ws * np.sin(df_wd_rad)
+
+        df = df.drop(['C_scode','DateTime','I_dev','Communication','WindDirection','Precipitation','AtmosphericPressure','DewPoint','F_dat1', 'F_dat2', 'F_dat3', 'F_dat4', 'F_dat5'],axis=1)
+
+        print(df.describe())
+
+        df.columns = ['Temperature','Humidity','WindSpeed','InsolationSlope','InsolationHorizon']
+        df = df[['Temperature','Humidity','WindSpeed','InsolationSlope','InsolationHorizon']]
 
         fitted_mm = joblib.load('minmaxShort.pkl')
         fit_pow = joblib.load('minmaxpowShort.pkl')
@@ -167,7 +180,7 @@ def predict():
 
         model_build = create_model(24, k)
 
-        checkpointFolder = 'all_train_data/train_artifacts'
+        checkpointFolder = 'all_train_data_10/train_artifacts'
         # METHOD_NAME = 'BiLSTM'
         PURPOSE = 'PVPowerGeneration-Short'
         PRED_LENGTH = '24Hours'
@@ -204,12 +217,11 @@ def predict():
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
 
-        # datenext = datetime.strptime(dateToday, '%Y%m%d') + timedelta(days=1)
-        datenext = datetime.strptime(dateToday, '%Y%m%d')
+        datenext = datetime.strptime(dateToday, '%Y%m%d') + timedelta(days=1)
         print('START PREDICTING !!!!!!!!!!!!!!!', k)
         for m in range(24):
             print('INSERT DATA TO DB', m)
-            sqlKMA = f"INSERT IGNORE INTO predictionShort (date,nx,ny,model,predictionValue)\
+            sqlKMA = f"INSERT IGNORE INTO predictionShort10 (date,nx,ny,model,predictionValue)\
                     VALUES ('{datenext}', '100', '91', '{k}', {pred[0][m]})"
             db_cursor.execute(sqlKMA) 
             db_conn.commit()
@@ -222,7 +234,7 @@ def predict():
 def post_data_kma(inputValue):
     db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
     db_cursor = db_conn.cursor()
-    sqlKMA = 'INSERT IGNORE INTO dataWeatherShortAPI (baseDate,baseTime,fcstDate,fcstTime,nx,ny,TMP,UUU,VVV,VEC,WSD,SKY,PTY,POP,WAV,PCP,REH,SNO)\
+    sqlKMA = 'INSERT INTO `weatherdataENS10`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
     db_cursor.execute(sqlKMA,inputValue) 
     db_conn.commit()
@@ -230,54 +242,30 @@ def post_data_kma(inputValue):
     db_cursor.close()
     db_conn.close()
 
-@scheduler.task('cron', id='getWeather', minute='24', hour='20')
+@scheduler.task('cron', id='getWeather', minute='40', hour='9')
 def update_KMA():
-    accessURL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst"
-    serviceKey = "sEKoH9gpdiVmk%2Fam1yBhtISsAHaDs9hEbx8sPdz%2BhHDnrXoxmn9VDdJAvJdZcoxgdEXuNdav16beMDFszEQgLw%3D%3D"
+    dateToday = datetime.now().date()
+    dateYst = (dateToday - timedelta(days=1)).strftime('%Y-%m-%d')
 
-    dateToday = datetime.now().date().strftime('%Y%m%d')
-    numOfRows = str(1000)
-    pageNo = str(1)
-    dataType = 'JSON'
-    base_date = dateToday
-    base_time = '0200'
-    nx = str(100)
-    ny = str(91)
+    conn = mysql.connector.connect(
+        host="ens-datacenter.kr",
+        port="3306",
+        user="kmsg22",
+        password="kmsg22",
+        database="ens_datacenter",
+    )
 
-    times = ['0000','0100','0200','0300','0400','0500','0600','0700','0800','0900','1000','1100','1200','1300','1400','1500','1600','1700','1800','1900','2000','2100','2200','2300']
-    categories = ['TMP','UUU','VVV','VEC','WSD','SKY','PTY','POP','WAV','PCP','REH','SNO']
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} 10:00:00' AND '{dateToday} 10:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
+    row = cur.fetchall()
+    cur.close()
+    conn.close()
 
-    completeURL = f'{accessURL}?serviceKey={serviceKey}&numOfRows={numOfRows}&pageNo={pageNo}&dataType={dataType}&base_date={base_date}&base_time={base_time}&nx={nx}&ny={ny}'
-
-    print(completeURL)
-
-    response = requests.get(completeURL,verify=True)
-
-    print('respose: ', response.content)
-    print('url: ', response.url)
-
-    json_data = json.loads(response.content)['response']['body']['items']['item']
-
-    # print('json data: ', json_data)
-    # print('len json data: ', len(json_data))
-
-    for tme in times:
+    for i in range (len(row)):
         inputValue = []
-        inputValue.append(base_date)
-        inputValue.append(base_time)
-        inputValue.append(base_date)
-        inputValue.append(tme)
-        inputValue.append(nx)
-        inputValue.append(ny)
-        for cat in categories:
-            if tme == '0000' or tme == '0100' or tme == '0200':
-                inputValue.append('0')
-            for i, row in enumerate(json_data):
-                if row['fcstDate'] == base_date:
-                    if row['fcstTime'] == tme and row['category'] == cat:
-                        inputValue.append(row['fcstValue'])
-        
-        print(inputValue)
+        for j in range (len(row[i])):
+            inputValue.append(row[i][j])    
+        # print(inputValue)
         post_data_kma(inputValue)
 
 def inserTruePow(inputvalue):
@@ -300,10 +288,10 @@ def truePower():
         database="kmsg_inverter",
     )
     cur = conn.cursor()
-    cur.execute("SELECT D_date, F_all_power FROM tbl_pvdat WHERE C_pcode = 71780003 ORDER BY `tbl_pvdat`.`D_date` DESC LIMIT 1;")
+    cur.execute("SELECT D_date, F_all_power FROM tbl_pvdat WHERE C_pcode = 71780003 GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_pvdat`.`D_date` DESC LIMIT 1;")
     row = cur.fetchone()
     val = (str(row[0]), row[1])
-    # print("Raw : ", row,str(row[0]), row[1], val)
+    print("Raw : ", row,str(row[0]), row[1], val)
     inserTruePow(val)
     cur.close()
     conn.close()
@@ -315,7 +303,7 @@ class getPrediction(Resource):
 
         db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
         db_cursor = db_conn.cursor()
-        db_command = f"SELECT predictionValue FROM predictionShort WHERE DATE(date) = {int(args['date'])} AND model = '{args['model']}' ORDER BY `date` ASC"
+        db_command = f"SELECT predictionValue FROM predictionShort10 WHERE DATE(date) = {int(args['date'])} AND model = '{args['model']}' ORDER BY `date` ASC"
         db_cursor.execute(db_command)
         response = db_cursor.fetchall()
 
