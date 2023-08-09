@@ -15,6 +15,9 @@ from tensorflow.keras.metrics import MeanAbsolutePercentageError as MAPEMetrics
 from tensorflow.keras.metrics import MeanAbsoluteError as MAEMetrics
 from tensorflow.keras.metrics import MeanSquaredError as MSEMetrics
 import tensorflow_addons as tfa
+import tensorflow as tf
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
 from flask import Flask
 from flask_apscheduler import APScheduler
