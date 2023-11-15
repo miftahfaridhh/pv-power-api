@@ -19,6 +19,7 @@ import tensorflow as tf
 physical_devices = tf.config.list_physical_devices('GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
+
 from flask import Flask
 from flask_apscheduler import APScheduler
 import time
@@ -122,7 +123,7 @@ def predict():
 
     for k in (METHOD_NAME):
         # print(j,k)
-        db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
+        db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
         db_cursor = db_conn.cursor()
 
         dateToday = datetime.now().date().strftime('%Y%m%d')
@@ -157,14 +158,6 @@ def predict():
         df['InsolationHorizon'] = pd.to_numeric(df['InsolationHorizon'])
 
         print(df.describe())
-
-        # df_ws = df.pop('WSD')
-        # df_wd_rad = df.pop('VEC')
-
-        # df_wd_rad = df_wd_rad*np.pi/180
-
-        # df['wx'] = df_ws * np.cos(df_wd_rad)
-        # df['wy'] = df_ws * np.sin(df_wd_rad)
 
         df = df.drop(['C_scode','DateTime','I_dev','Communication','WindDirection','Precipitation','AtmosphericPressure','DewPoint','F_dat1', 'F_dat2', 'F_dat3', 'F_dat4', 'F_dat5'],axis=1)
 
@@ -217,7 +210,7 @@ def predict():
         # print(datenext)
         # print(datenext + timedelta(hours=1))
 
-        db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
+        db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
         db_cursor = db_conn.cursor()
 
         datenext = datetime.strptime(dateToday, '%Y%m%d') + timedelta(days=1)
@@ -235,7 +228,7 @@ def predict():
         db_conn.close()
 
 def post_data_kma(inputValue):
-    db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
+    db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
     db_cursor = db_conn.cursor()
     sqlKMA = 'INSERT INTO `weatherdataENS16`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
@@ -253,8 +246,8 @@ def update_KMA():
     conn = mysql.connector.connect(
         host="ens-datacenter.kr",
         port="3306",
-        user="kmsg22",
-        password="kmsg22",
+        user="kookmin",
+        password="kookmin",
         database="ens_datacenter",
     )
 
@@ -269,10 +262,11 @@ def update_KMA():
         for j in range (len(row[i])):
             inputValue.append(row[i][j])    
         # print(inputValue)
+        # print("inputValue",inputValue)
         post_data_kma(inputValue)
 
 def inserTruePow(inputvalue):
-    db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
+    db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
     db_cursor = db_conn.cursor()
     sqlCommand = "INSERT INTO `TruePow`(`D_date`, `F_all_power`) VALUES (%s, %s)"
     db_cursor.execute(sqlCommand,inputvalue) 
@@ -284,16 +278,17 @@ def inserTruePow(inputvalue):
 @scheduler.task('cron', id='getTruePower', minute='10', hour='*')
 def truePower():
     conn = mysql.connector.connect(
-        host="kmsg007.iptime.org",
+        host="ens-datacenter.kr",
         port="3306",
-        user="kmsg22",
-        password="kmsg22",
-        database="kmsg_inverter",
+        user="kookmin",
+        password="kookmin",
+        database="ens_datacenter",
     )
     cur = conn.cursor()
-    cur.execute("SELECT D_date, F_all_power FROM tbl_pvdat WHERE C_pcode = 71780003 GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_pvdat`.`D_date` DESC LIMIT 1;")
+    cur.execute("SELECT D_date, F_tot FROM tbl_pv_power WHERE C_scode = 717800003 GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_pv_power`.`D_date` DESC LIMIT 1;")
     row = cur.fetchone()
     val = (str(row[0]), row[1])
+    # print("Raw : ", row)
     print("Raw : ", row,str(row[0]), row[1], val)
     # inserTruePow(val)
     cur.close()
@@ -304,7 +299,7 @@ class getPrediction(Resource):
         args = parser.parse_args()
         print(args['date'],args['sitecode'],args['model'], time.time())
 
-        db_conn = mariadb.connect(host="113.198.211.94", user="abc", password="123", database="PVPowerGeneration", port=3360)
+        db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
         db_cursor = db_conn.cursor()
         db_command = f"SELECT predictionValue FROM predictionShort16 WHERE DATE(date) = {int(args['date'])} AND model = '{args['model']}' ORDER BY `date` ASC"
         db_cursor.execute(db_command)
