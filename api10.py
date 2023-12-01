@@ -16,8 +16,8 @@ from tensorflow.keras.metrics import MeanAbsoluteError as MAEMetrics
 from tensorflow.keras.metrics import MeanSquaredError as MSEMetrics
 import tensorflow_addons as tfa
 import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+# physical_devices = tf.config.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
 
 from flask import Flask
@@ -117,7 +117,7 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='50', hour='09')
+@scheduler.task('cron', id='prediction', minute='46', hour='22')
 def predict():
     METHOD_NAME = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
 
@@ -264,6 +264,7 @@ def update_KMA():
         # print(inputValue)
         # print("inputValue",inputValue)
         post_data_kma(inputValue)
+    print("Update Weather Data")
 
 def inserTruePow(inputvalue):
     db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
