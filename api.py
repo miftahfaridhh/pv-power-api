@@ -118,10 +118,17 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='50', hour='9')
+@scheduler.task('cron', id='prediction', minute='50', hour='9,15')
 def predict():
     SITE_NAMES = ['717800003','717800006','717800007', '717800008', '717800009', '717800010']
-    MODELTIMES = ['10', '16']
+    current_datetime = datetime.now()
+    # Get the current hour
+    current_hour = current_datetime.hour
+    next_hour = current_datetime + timedelta(hours=1)
+    get_next_hour = next_hour.hours
+
+    # MODELTIMES = ['10', '16']
+    MODELTIMES = [str(get_next_hour)]
     METHOD_NAMES = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
     for SITE_NAME in (SITE_NAMES):
         for MODELTIME in (MODELTIMES):
