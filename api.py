@@ -296,14 +296,14 @@ def update_Weather(modeltimes):
 @scheduler.task('cron', id='prediction_10', minute='50', hour='9')
 def prediction_at_10():
     modeltimes = 10
-    update_Weather(modeltimes)
-    predict(modeltimes)
+    update_Weather(modeltimes) #INPUT DATA
+    predict(modeltimes) #PREDICTION
 
 @scheduler.task('cron', id='prediction_16', minute='50', hour='15')
 def prediction_at_16():
     modeltimes = 16
-    update_Weather(modeltimes)
-    predict(modeltimes)
+    update_Weather(modeltimes) #INPUT DATA
+    predict(modeltimes) #PREDICTION
 
 class getPrediction(Resource):
     def post(self):
