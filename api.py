@@ -16,8 +16,8 @@ from tensorflow.keras.metrics import MeanAbsoluteError as MAEMetrics
 from tensorflow.keras.metrics import MeanSquaredError as MSEMetrics
 import tensorflow_addons as tfa
 import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
+# physical_devices = tf.config.list_physical_devices('GPU')
+# tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
 
 
 from flask import Flask
@@ -118,17 +118,11 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-@scheduler.task('cron', id='prediction', minute='50', hour='9,15')
-def predict():
+def predict(modeltimes):
     SITE_NAMES = ['717800003','717800006','717800007', '717800008', '717800009', '717800010']
-    current_datetime = datetime.now()
-    # Get the current hour
-    current_hour = current_datetime.hour
-    next_hour = current_datetime + timedelta(hours=1)
-    get_next_hour = next_hour.hours
-
+    
     # MODELTIMES = ['10', '16']
-    MODELTIMES = [str(get_next_hour)]
+    MODELTIMES = [str(modeltimes)]
     METHOD_NAMES = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
     for SITE_NAME in (SITE_NAMES):
         for MODELTIME in (MODELTIMES):
@@ -137,7 +131,7 @@ def predict():
                 db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
                 db_cursor = db_conn.cursor()
 
-                dateToday = datetime.now().date().strftime('%Y%m%d')
+                dateToday = datetime.now().date()
                 # print(dateToday)
 
                 # dateTday = datetime.now().date()
@@ -201,7 +195,6 @@ def predict():
 
                 prediction_result = prediction(model_build,10,norm_df)
 
-                # pred = prediction_result
                 print(prediction_result.shape)
                 print(prediction_result)
 
@@ -259,20 +252,20 @@ def predict():
                             VALUES ('{datenextstr}', {MODELTIME}, {SITE_NAME}, '{METHOD_NAME}', {pred[0][m]})"
                     db_cursor.execute(sqlKMA) 
                     db_conn.commit()
-
-                    # datenext = datenext + timedelta(hours=1)
                     datenext += timedelta(hours=1)
 
                 db_cursor.close()
                 db_conn.close()
+    print(f"======= Prediction Finished for {MODELTIMES} o'clock =======")
 
-def post_data_kma(inputValue, modeltime):
+
+def post_data_kma(inputValue, modeltimes):
     db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
     db_cursor = db_conn.cursor()
-    if modeltime == 10 :
+    if modeltimes == 10 :
         sqlKMA = 'INSERT INTO `weatherdataENS10`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-    elif modeltime == 16 :
+    elif modeltimes == 16 :
         sqlKMA = 'INSERT INTO `weatherdataENS16`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
     db_cursor.execute(sqlKMA,inputValue) 
@@ -280,49 +273,14 @@ def post_data_kma(inputValue, modeltime):
     db_cursor.close()
     db_conn.close()
 
-@scheduler.task('cron', id='getWeather', minute='40', hour='9')
-def update_KMA_10():
+def update_Weather(modeltimes):
     dateToday = datetime.now().date()
     dateYst = (dateToday - timedelta(days=1)).strftime('%Y-%m-%d')
 
-    conn = mysql.connector.connect(
-        host="ens-datacenter.kr",
-        port="3306",
-        user="kookmin",
-        password="kookmin",
-        database="ens_datacenter",
-    )
-
+    conn = mysql.connector.connect(host=ENS_DB_HOST, port=ENS_DB_PORT, user=ENS_DB_USER, password=ENS_DB_PASSWORD, database=ENS_DB_NAME)
     cur = conn.cursor()
-    cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} 10:00:00' AND '{dateToday} 10:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
-    row = cur.fetchall()
-    cur.close()
-    conn.close()
-
-    for i in range (len(row)):
-        inputValue = []
-        for j in range (len(row[i])):
-            inputValue.append(row[i][j])    
-        # print(inputValue)
-        # print("inputValue",inputValue)
-        post_data_kma(inputValue, 10)
-    print("Update Weather Data")
-
-@scheduler.task('cron', id='getWeather', minute='40', hour='15')
-def update_KMA_16():
-    dateToday = datetime.now().date()
-    dateYst = (dateToday - timedelta(days=1)).strftime('%Y-%m-%d')
-
-    conn = mysql.connector.connect(
-        host="ens-datacenter.kr",
-        port="3306",
-        user="kookmin",
-        password="kookmin",
-        database="ens_datacenter",
-    )
-
-    cur = conn.cursor()
-    cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} 16:00:00' AND '{dateToday} 16:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
+    cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} {modeltimes}:00:00' AND '{dateToday} {modeltimes}:00:00'\
+                GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
     row = cur.fetchall()
     cur.close()
     conn.close()
@@ -331,31 +289,21 @@ def update_KMA_16():
         inputValue = []
         for j in range (len(row[i])):
             inputValue.append(row[i][j])
-        post_data_kma(inputValue, 16)
-    print("Update Weather Data")
+        post_data_kma(inputValue, modeltimes)
+    print(f"Update Weather Data For Prediction at {modeltimes}")
 
-# def inserTruePow(inputvalue):
-#     db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
-#     db_cursor = db_conn.cursor()
-#     sqlCommand = "INSERT INTO `TruePow`(`D_date`, `F_all_power`) VALUES (%s, %s)"
-#     db_cursor.execute(sqlCommand,inputvalue) 
-#     db_conn.commit()
-#     # print(db_cursor.rowcount, "record inserted.")
-#     db_cursor.close()
-#     db_conn.close()
 
-# @scheduler.task('cron', id='getTruePower', minute='10', hour='*')
-# def truePower():
-#     conn = mysql.connector.connect(host=ENS_DB_HOST, port=ENS_DB_PORT, user=ENS_DB_USER, password=ENS_DB_PASSWORD, database=ENS_DB_NAME)
-#     cur = conn.cursor()
-#     cur.execute("SELECT D_date, F_tot FROM tbl_pv_power WHERE C_scode = 717800003 GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_pv_power`.`D_date` DESC LIMIT 1;")
-#     row = cur.fetchone()
-#     val = (str(row[0]), row[1])
-#     # print("Raw : ", row)
-#     print("Raw : ", row,str(row[0]), row[1], val)
-#     # inserTruePow(val)
-#     cur.close()
-#     conn.close()
+@scheduler.task('cron', id='prediction_10', minute='50', hour='9')
+def prediction_at_10():
+    modeltimes = 10
+    update_Weather(modeltimes)
+    predict(modeltimes)
+
+@scheduler.task('cron', id='prediction_16', minute='50', hour='15')
+def prediction_at_16():
+    modeltimes = 16
+    update_Weather(modeltimes)
+    predict(modeltimes)
 
 class getPrediction(Resource):
     def post(self):
