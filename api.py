@@ -138,7 +138,7 @@ def predict(modeltimes):
                 dateYst = (dateToday - timedelta(days=1)).strftime('%Y-%m-%d')
                 dateYstt = (dateToday - timedelta(days=2)).strftime('%Y-%m-%d')
                 dateTday = dateToday.strftime('%Y-%m-%d')
-                print(dateTday)
+                print("=== Prediction at ",dateTday, " For predicting next day power generation ===")
 
                 db_command = f"SELECT * FROM weatherdataENS{MODELTIME} WHERE D_date BETWEEN '{dateYst} {MODELTIME}:00:00' AND '{dateTday} {MODELTIME}:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY 'D_date' ASC"
                 db_cursor.execute(db_command)
@@ -147,7 +147,7 @@ def predict(modeltimes):
                 db_cursor.close()
                 db_conn.close()
 
-                print(response)
+                # print(response)
 
                 df = pd.DataFrame(response, columns=['C_scode','D_date','I_dev','I_comyn','F_temp','F_humidity','F_wind_direction','F_wind_speed',
                                                     'F_precipitation','F_insolation_slope','F_insolation_horizon','F_atmosp_press',
@@ -163,7 +163,7 @@ def predict(modeltimes):
                 df['InsolationSlope'] = pd.to_numeric(df['InsolationSlope'])
                 df['InsolationHorizon'] = pd.to_numeric(df['InsolationHorizon'])
 
-                print(df.describe())
+                # print(df.describe())
 
                 df = df.drop(['C_scode','DateTime','I_dev','Communication','WindDirection','Precipitation','AtmosphericPressure','DewPoint','F_dat1', 'F_dat2', 'F_dat3', 'F_dat4', 'F_dat5'],axis=1)
 
@@ -195,8 +195,8 @@ def predict(modeltimes):
 
                 prediction_result = prediction(model_build,10,norm_df)
 
-                print(prediction_result.shape)
-                print(prediction_result)
+                # print(prediction_result.shape)
+                # print(prediction_result)
 
                 pred = np.empty(shape=(1,24))
 
@@ -238,7 +238,7 @@ def predict(modeltimes):
                         else :
                             pred[0][l] = kkk
 
-                print(pred)
+                # print(pred)
 
                 db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
                 db_cursor = db_conn.cursor()
@@ -246,7 +246,7 @@ def predict(modeltimes):
                 datenext = dateToday + timedelta(days=1)
                 print('START PREDICTING !!!!!!!!!!!!!!!', METHOD_NAME)
                 for m in range(24):
-                    print('INSERT DATA TO DB', m)
+                    # print('INSERT DATA TO DB', m)
                     datenextstr = datenext.strftime('%Y%m%d')
                     sqlKMA = f"INSERT IGNORE INTO  predictionresult(datename, modeltime, sitename, methodname, predictionvalue)\
                             VALUES ('{datenextstr}', {MODELTIME}, {SITE_NAME}, '{METHOD_NAME}', {pred[0][m]})"
@@ -407,4 +407,4 @@ def predPlot():
     return render_template('powerPlot.html')
 
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0', port=5005,use_reloader=False)
+    app.run(debug=True,host='0.0.0.0', port=5000,use_reloader=False)
