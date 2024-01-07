@@ -119,7 +119,7 @@ def prediction(model, iteration, X_test):
     return prediction
 
 def predict(modeltimes):
-    SITE_NAMES = ['717800003','717800006','717800007', '717800008', '717800009', '717800010']
+    SITE_NAMES = ['717800001','717800002','717800003','717800004','717800004','717800006','717800007', '717800008', '717800009', '717800010']
     
     # MODELTIMES = ['10', '16']
     MODELTIMES = [str(modeltimes)]
@@ -202,9 +202,25 @@ def predict(modeltimes):
 
                 ###### denorm process ###### 
 
-                if SITE_NAME == '717800003':
+                if SITE_NAME == '717800001':
+                    MINDATA = 0
+                    MAXDATA = 79.0
+
+                elif SITE_NAME == '717800002':
+                    MINDATA = 0
+                    MAXDATA = 84.0
+
+                elif SITE_NAME == '717800003':
                     MINDATA = 0
                     MAXDATA = 99
+
+                elif SITE_NAME == '717800004':
+                    MINDATA = 0
+                    MAXDATA = 84.0
+
+                elif SITE_NAME == '717800005':
+                    MINDATA = 0
+                    MAXDATA = 83.0
                 
                 elif SITE_NAME == '717800006':
                     MINDATA = 0
