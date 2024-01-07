@@ -118,12 +118,13 @@ def prediction(model, iteration, X_test):
     prediction = model.predict(X_test)
     return prediction
 
-def predict(modeltimes):
-    SITE_NAMES = ['717800001','717800002','717800003','717800004','717800005','717800006','717800007', '717800008', '717800009', '717800010']
+def predict(modeltimes, dateToday):
+    SITE_NAMES = ['717800001','717800002','717800004','717800005']
     
     # MODELTIMES = ['10', '16']
     MODELTIMES = [str(modeltimes)]
     METHOD_NAMES = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
+    print(modeltimes, dateToday)
     for SITE_NAME in (SITE_NAMES):
         for MODELTIME in (MODELTIMES):
             for METHOD_NAME in (METHOD_NAMES):
@@ -131,7 +132,7 @@ def predict(modeltimes):
                 db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
                 db_cursor = db_conn.cursor()
 
-                dateToday = datetime.now().date()
+                # dateToday = datetime.now().date()
                 # print(dateToday)
 
                 # dateTday = datetime.now().date()
@@ -309,17 +310,40 @@ def update_Weather(modeltimes):
     print(f"Update Weather Data For Prediction at {modeltimes}")
 
 
-@scheduler.task('cron', id='prediction_10', minute='50', hour='9')
-def prediction_at_10():
-    modeltimes = 10
-    update_Weather(modeltimes) #INPUT DATA
-    predict(modeltimes) #PREDICTION
+# @scheduler.task('cron', id='prediction_10', minute='50', hour='9')
+# def prediction_at_10():
+#     modeltimes = 10
+#     update_Weather(modeltimes) #INPUT DATA
+#     predict(modeltimes) #PREDICTION
 
-@scheduler.task('cron', id='prediction_16', minute='50', hour='15')
-def prediction_at_16():
-    modeltimes = 16
-    update_Weather(modeltimes) #INPUT DATA
-    predict(modeltimes) #PREDICTION
+# @scheduler.task('cron', id='prediction_16', minute='50', hour='15')
+# def prediction_at_16():
+#     modeltimes = 16
+#     update_Weather(modeltimes) #INPUT DATA
+#     predict(modeltimes) #PREDICTION
+
+
+@scheduler.task('cron', id='prediction_new16', minute='39', hour='00')
+def prediction_new16():
+    print("======Mulai=====")
+    # Tanggal awal
+    tanggal_awal = datetime(2023, 9, 30).date()
+
+    # Tanggal sekarang
+    tanggal_sekarang = datetime.now().date()
+    DATE_TODAYS = [tanggal_awal + timedelta(n) for n in range((tanggal_sekarang - tanggal_awal).days + 1)]
+
+    MODELTIMES = ["10", "16"]
+
+    # print(MODELTIMES, DATE_TODAYS)
+
+
+
+    for DATE_TODAY in (DATE_TODAYS):
+        for MODELTIME in (MODELTIMES):
+            # print(MODELTIME, DATE_TODAY)
+            predict(MODELTIME, DATE_TODAY)
+    print("======Selesai=====")
 
 class getPrediction(Resource):
     def post(self):
