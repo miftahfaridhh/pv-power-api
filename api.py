@@ -14,7 +14,6 @@ from tensorflow.keras.losses import MeanSquaredError as MSELoss
 from tensorflow.keras.metrics import MeanAbsolutePercentageError as MAPEMetrics
 from tensorflow.keras.metrics import MeanAbsoluteError as MAEMetrics
 from tensorflow.keras.metrics import MeanSquaredError as MSEMetrics
-import tensorflow_addons as tfa
 import tensorflow as tf
 # physical_devices = tf.config.list_physical_devices('GPU')
 # tf.config.experimental.set_memory_growth(physical_devices[0], enable=True)
@@ -44,74 +43,68 @@ parser.add_argument('sitecode')
 parser.add_argument('model')
 parser.add_argument('modeltime')
 
-def create_model(units, modelName):
-    if modelName == 'BiLSTM':
-        model = Sequential()
-        model.add(Input(shape=(24, 5)))
-        model.add(Bidirectional(LSTM(units = units, return_sequences=True)))
-        model.add(Bidirectional(LSTM(units = 24),merge_mode='sum'))
+def create_model(MODEL_TYPE):
+    data_features = 12
+    lr = 1e-3
+    in_seq_length = 24
+    out_seq_length = 24
+    n_sliding_steps = 24
 
-        model.compile(optimizer=tf.keras.optimizers.Adam(0.001),
-                    loss=tf.keras.losses.MeanSquaredError(),
-                    metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics(), tf.nn.log_poisson_loss, tfa.metrics.RSquare()])
-        
-    elif modelName == 'BiLSTM_MultiDense':
-        model = Sequential()
-        model.add(Input(shape=(24, 5)))
-        model.add(Bidirectional(LSTM(units = units, return_sequences=True)))
-        model.add(Bidirectional(LSTM(units = units*5)))
-        
-        model.add(Dense(units=500,activation='tanh'))
-        model.add(Dense(units=250,activation='tanh'))
-        model.add(Dense(units=24,activation='tanh'))
-
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
-                    loss=tf.keras.losses.MeanSquaredError(),
-                    metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics(), tf.nn.log_poisson_loss, tfa.metrics.RSquare()])
-        
-    elif modelName == 'BiLSTM_SingleDense':
-        model = Sequential()
-        model.add(Input(shape=(24, 5)))
-        model.add(Bidirectional(LSTM(units = units, return_sequences=True)))
-        model.add(Bidirectional(LSTM(units = units*5)))
-        model.add(Dense(units=24,activation='tanh'))
-
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                    loss=tf.keras.losses.MeanSquaredError(),
-                    metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics(), tf.nn.log_poisson_loss, tfa.metrics.RSquare()])
-    
-    elif modelName == 'Conv_LSTM':
-        model = Sequential()
-        model.add(Input(shape=(24, 5)))
-        model.add(Conv1D(filters=128,kernel_size=3,padding='same',activation='tanh'))
-        model.add(Conv1D(filters=256,kernel_size=3,padding='same',activation='tanh'))
-        model.add(LSTM(units = units, return_sequences=True))
-        model.add(LSTM(units = 24))
-    
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                    loss=tf.keras.losses.MeanSquaredError(),
-                    metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics(), tf.nn.log_poisson_loss, tfa.metrics.RSquare()])
-        
-    elif modelName == 'LSTM':
-        model = Sequential()
-        model.add(Input(shape=(24, 5)))
-        model.add(LSTM(units = units, return_sequences=True))
-        model.add(LSTM(units = 24))
-
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=24),
-                    loss=tf.keras.losses.MeanSquaredError(),
-                    metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics(), tf.nn.log_poisson_loss, tfa.metrics.RSquare()])
-        
-    elif modelName == 'RNN':
-        model = Sequential()
-        model.add(Input(shape=(24, 5)))
-        model.add(SimpleRNN(units = units*2, return_sequences=True))
-        model.add(SimpleRNN(units = 24))
-
-        model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
-                    loss=tf.keras.losses.MeanSquaredError(),
-                    metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics(), tf.nn.log_poisson_loss, tfa.metrics.RSquare()])
-
+    model = Sequential()
+    model.add(Input(shape=(in_seq_length, data_features)))
+    if (MODEL_TYPE =='BiLSTM'):
+        model.add(Bidirectional(LSTM(units=in_seq_length*2, return_sequences=True)))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(LSTM(units=in_seq_length*2, return_sequences=True)))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(LSTM(units=out_seq_length), merge_mode='sum'))
+        model.add(Dense(units=out_seq_length, activation='tanh'))
+    elif (MODEL_TYPE =='BiLSTM_SingleDense'):
+        model.add(Bidirectional(LSTM(units=in_seq_length, return_sequences=True)))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(LSTM(units=in_seq_length*5)))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=256, activation='tanh'))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=out_seq_length, activation='tanh'))
+    elif (MODEL_TYPE =='BiLSTM_MultiDense'):
+        model.add(Bidirectional(LSTM(units=in_seq_length, return_sequences=True)))
+        model.add(Dropout(0.2))
+        model.add(Bidirectional(LSTM(units=in_seq_length*5)))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=500, activation='tanh'))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=250, activation='tanh'))
+        model.add(Dropout(0.2))
+        model.add(Dense(units=out_seq_length, activation='tanh'))
+    elif (MODEL_TYPE =='LSTM'):
+        model.add(LSTM(units=in_seq_length, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(units=in_seq_length*2, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(units=out_seq_length))
+        model.add(Dense(units=out_seq_length, activation='tanh'))
+    elif (MODEL_TYPE =='ConvLSTM'):
+        model.add(Conv1D(filters=128, kernel_size=3, padding='same', activation='tanh'))
+        model.add(Dropout(0.2))
+        model.add(Conv1D(filters=256, kernel_size=3, padding='same', activation='tanh'))
+        model.add(Dropout(0.2))
+        model.add(Conv1D(filters=128, kernel_size=3, padding='same', activation='tanh'))
+        model.add(Dropout(0.2))
+        model.add(LSTM(units=in_seq_length, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(LSTM(units=out_seq_length))
+        model.add(Dense(units=out_seq_length, activation='tanh'))
+    elif (MODEL_TYPE =='RNN'):
+        model.add(SimpleRNN(units=in_seq_length*2, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(SimpleRNN(units=in_seq_length*2, return_sequences=True))
+        model.add(Dropout(0.2))
+        model.add(SimpleRNN(units=out_seq_length))
+        model.add(Dense(units=out_seq_length, activation='tanh'))
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
+            loss=tf.keras.losses.MeanSquaredError(),
+            metrics=[MAEMetrics(), MSEMetrics(), MAPEMetrics()])
     return model
     
 def prediction(model, iteration, X_test):
@@ -121,9 +114,9 @@ def prediction(model, iteration, X_test):
 def predict(modeltimes):
     SITE_NAMES = ['717800001','717800002','717800003','717800004','717800005','717800006','717800007', '717800008', '717800009', '717800010']
     
-    # MODELTIMES = ['10', '16']
-    MODELTIMES = [str(modeltimes)]
-    METHOD_NAMES = ['BiLSTM','BiLSTM_MultiDense','BiLSTM_SingleDense','Conv_LSTM','LSTM','RNN']
+    MODELTIMES = ['10', '16']
+    # MODELTIMES = [str(modeltimes)]
+    METHOD_NAMES =  ['BiLSTM', 'BiLSTM_SingleDense', 'BiLSTM_MultiDense', 'LSTM', 'ConvLSTM', 'RNN']
     for SITE_NAME in (SITE_NAMES):
         for MODELTIME in (MODELTIMES):
             for METHOD_NAME in (METHOD_NAMES):
@@ -140,113 +133,148 @@ def predict(modeltimes):
                 dateTday = dateToday.strftime('%Y-%m-%d')
                 print("=== Prediction at ",dateTday, " For predicting next day power generation ===")
 
-                db_command = f"SELECT * FROM weatherdataENS{MODELTIME} WHERE D_date BETWEEN '{dateYst} {MODELTIME}:00:00' AND '{dateTday} {MODELTIME}:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY 'D_date' ASC"
+                db_command = f"SELECT * FROM tbl_kma_weather WHERE D_date BETWEEN '{dateYst} 00:00:00' AND '{dateYst} 23:00:00' GROUP BY DATE(D_date),HOUR(D_date) ORDER BY 'D_date' ASC"
                 db_cursor.execute(db_command)
                 response = db_cursor.fetchall()
+
+                # print(response)
 
                 db_cursor.close()
                 db_conn.close()
 
                 # print(response)
 
-                df = pd.DataFrame(response, columns=['C_scode','D_date','I_dev','I_comyn','F_temp','F_humidity','F_wind_direction','F_wind_speed',
-                                                    'F_precipitation','F_insolation_slope','F_insolation_horizon','F_atmosp_press',
-                                                    'F_dewpoint','F_dat1', 'F_dat2', 'F_dat3', 'F_dat4', 'F_dat5'])
-                df = df.rename(columns={'D_date':'DateTime','I_comyn':'Communication','F_temp':'Temperature','F_humidity':'Humidity',
-                                        'F_wind_direction':'WindDirection','F_wind_speed':'WindSpeed','F_precipitation':'Precipitation',
-                                        'F_insolation_slope':'InsolationSlope','F_insolation_horizon':'InsolationHorizon','F_atmosp_press':'AtmosphericPressure',
-                                        'F_dewpoint':'DewPoint'})
+                df_raw = pd.DataFrame(response, columns=['C_scode','D_date','F_30cm_soil_temp','F_20cm_soil_temp','F_10cm_soil_temp','F_5cm_soil_temp','F_ground_temp','F_dmst_mtph_no','F_ground_state','C_visibility','F_min_cloud_cover','C_cloud_pattern','F_mid_low_cloud_cover','F_total_cloud_cover','F_3hr_snowfall','F_snowfall','F_solar_radiation','F_daylight','F_sea_level_pressure','F_local_pressure','F_dew_point_temp','F_vapor_pressure','F_humidity','F_wind_direction','F_wind_speed','F_precipitation','F_temp'])
 
-                df['Temperature'] = pd.to_numeric(df['Temperature'])
-                df['Humidity'] = pd.to_numeric(df['Humidity'])
-                df['WindSpeed'] = pd.to_numeric(df['WindSpeed'])
-                df['InsolationSlope'] = pd.to_numeric(df['InsolationSlope'])
-                df['InsolationHorizon'] = pd.to_numeric(df['InsolationHorizon'])
+                df = df_raw[['F_10cm_soil_temp', 'F_5cm_soil_temp',
+                            'F_ground_temp', 'C_visibility', 'F_min_cloud_cover',
+                            'F_mid_low_cloud_cover', 'F_total_cloud_cover', 'F_solar_radiation',
+                            'F_daylight', 'F_humidity', 'F_wind_speed', 'F_temp']]
+                
 
-                # print(df.describe())
+                # Mengubah tipe data kolom menjadi numerik
+                numeric_columns = [
+                    'F_10cm_soil_temp', 'F_5cm_soil_temp', 'F_ground_temp', 'C_visibility', 'F_min_cloud_cover',
+                    'F_mid_low_cloud_cover', 'F_total_cloud_cover', 'F_solar_radiation', 'F_daylight', 
+                    'F_humidity', 'F_wind_speed', 'F_temp'
+                ]
 
-                df = df.drop(['C_scode','DateTime','I_dev','Communication','WindDirection','Precipitation','AtmosphericPressure','DewPoint','F_dat1', 'F_dat2', 'F_dat3', 'F_dat4', 'F_dat5'],axis=1)
+                for col in numeric_columns:
+                    df.loc[:, col] = pd.to_numeric(df[col], errors='coerce')
 
-                print(df.describe())
+                
+                if MODELTIME == '10' :
+                    checkpointFolder = f'train_data'
 
-                df.columns = ['Temperature','Humidity','WindSpeed','InsolationSlope','InsolationHorizon']
-                df = df[['Temperature','Humidity','WindSpeed','InsolationSlope','InsolationHorizon']]
+                    if SITE_NAME == '717800001':
+                        MINDATA = 0
+                        MAXDATA = 82.0
 
-                fitted_mm = joblib.load('minmaxShort.pkl')
-                fit_pow = joblib.load('minmaxpowShort.pkl')
+                    elif SITE_NAME == '717800002':
+                        MINDATA = 0
+                        MAXDATA = 83.0
+
+                    elif SITE_NAME == '717800003':
+                        MINDATA = 0
+                        MAXDATA = 86.0
+
+                    elif SITE_NAME == '717800004':
+                        MINDATA = 0
+                        MAXDATA = 86.0
+
+                    elif SITE_NAME == '717800005':
+                        MINDATA = 0
+                        MAXDATA = 86.0
+                    
+                    elif SITE_NAME == '717800006':
+                        MINDATA = 0
+                        MAXDATA = 38.90999999997439
+
+                    elif SITE_NAME == '717800007':
+                        MINDATA = 0
+                        MAXDATA = 41.14999999999418
+
+                    elif SITE_NAME == '717800008':
+                        MINDATA = 0
+                        MAXDATA = 41.01000000000931
+
+                    elif SITE_NAME == '717800009':
+                        MINDATA = 0
+                        MAXDATA = 40.0800000000163
+                    
+                    elif SITE_NAME == '717800010':
+                        MINDATA = 0
+                        MAXDATA = 39.97000000000117
+                
+                elif MODELTIME == '16' :
+                    checkpointFolder = f'train_data2021'
+
+                    if SITE_NAME == '717800001':
+                        MINDATA = 0
+                        MAXDATA = 82.0
+
+                    elif SITE_NAME == '717800002':
+                        MINDATA = 0
+                        MAXDATA = 84.0
+
+                    elif SITE_NAME == '717800003':
+                        MINDATA = 0
+                        MAXDATA = 87.0
+
+                    elif SITE_NAME == '717800004':
+                        MINDATA = 0
+                        MAXDATA = 86.0
+
+                    elif SITE_NAME == '717800005':
+                        MINDATA = 0
+                        MAXDATA = 86.0
+                    
+                    elif SITE_NAME == '717800006':
+                        MINDATA = 0
+                        MAXDATA = 39.0
+
+                    elif SITE_NAME == '717800007':
+                        MINDATA = 0
+                        MAXDATA = 41.14999999999418
+
+                    elif SITE_NAME == '717800008':
+                        MINDATA = 0
+                        MAXDATA = 41.04000000000815
+
+                    elif SITE_NAME == '717800009':
+                        MINDATA = 0
+                        MAXDATA = 40.0800000000163
+                    
+                    elif SITE_NAME == '717800010':
+                        MINDATA = 0
+                        MAXDATA = 39.97000000000117
+
+
+                fitted_mm = joblib.load(f'{checkpointFolder}/{SITE_NAME}/minmaxShort.pkl')
 
                 norm_df = fitted_mm.transform(df)
 
                 print(norm_df.shape)
-                norm_df = norm_df.reshape(1,24,5)
+                norm_df = norm_df.reshape(1,24,12)
 
-                model_build = create_model(24, METHOD_NAME)
+                model_build = create_model(METHOD_NAME)
 
-                checkpointFolder = f'all_train_data/{SITE_NAME}/{MODELTIME}/train_artifacts'
-                # METHOD_NAME = 'BiLSTM'
-                PURPOSE = 'PVPowerGeneration-Short'
-                PRED_LENGTH = '24Hours'
-                train_filename = '24h_sklearn_minmax_trainShort.pkl'
-                TRAIN_NAME = f'{METHOD_NAME}-{PURPOSE}-{PRED_LENGTH}-{train_filename}'
-
-                checkpoint_path = f'{checkpointFolder}/{TRAIN_NAME}'
+                checkpoint_path = f'{checkpointFolder}/{SITE_NAME}/2/{METHOD_NAME}'
 
                 model_build.load_weights(checkpoint_path)
 
                 prediction_result = prediction(model_build,10,norm_df)
 
-                # print(prediction_result.shape)
-                # print(prediction_result)
-
                 pred = np.empty(shape=(1,24))
 
                 ###### denorm process ###### 
 
-                if SITE_NAME == '717800001':
-                    MINDATA = 0
-                    MAXDATA = 79.0
-
-                elif SITE_NAME == '717800002':
-                    MINDATA = 0
-                    MAXDATA = 84.0
-
-                elif SITE_NAME == '717800003':
-                    MINDATA = 0
-                    MAXDATA = 99
-
-                elif SITE_NAME == '717800004':
-                    MINDATA = 0
-                    MAXDATA = 84.0
-
-                elif SITE_NAME == '717800005':
-                    MINDATA = 0
-                    MAXDATA = 83.0
-                
-                elif SITE_NAME == '717800006':
-                    MINDATA = 0
-                    MAXDATA = 42.37
-
-                elif SITE_NAME == '717800007':
-                    MINDATA = 0
-                    MAXDATA = 45.07
-
-                elif SITE_NAME == '717800008':
-                    MINDATA = 0
-                    MAXDATA = 45.23
-
-                elif SITE_NAME == '717800009':
-                    MINDATA = 0
-                    MAXDATA = 43.65
-                
-                elif SITE_NAME == '717800010':
-                    MINDATA = 0
-                    MAXDATA = 44.55
 
                 
                 for l in range(24):
                     pred_std = (prediction_result[0][l] - (-1)) / (1 - (-1))
                     kkk = (pred_std * (MAXDATA-MINDATA)) + MINDATA
-                    if l < 5 or l > 20 :
+                    if l < 4 or l > 21 :
                         pred[0][l] = 0
                     else :
                         if (kkk) < 0:
@@ -259,7 +287,8 @@ def predict(modeltimes):
                 db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
                 db_cursor = db_conn.cursor()
 
-                datenext = dateToday + timedelta(days=1)
+                # datenext = dateToday + timedelta(days=1)
+                datenext = dateToday
                 print('START PREDICTING !!!!!!!!!!!!!!!', METHOD_NAME)
                 for m in range(24):
                     # print('INSERT DATA TO DB', m)
@@ -278,13 +307,18 @@ def predict(modeltimes):
 def post_data_kma(inputValue, modeltimes):
     db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
     db_cursor = db_conn.cursor()
-    if modeltimes == 10 :
-        sqlKMA = 'INSERT INTO `weatherdataENS10`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-    elif modeltimes == 16 :
-        sqlKMA = 'INSERT INTO `weatherdataENS16`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-    db_cursor.execute(sqlKMA,inputValue) 
+    # if modeltimes == 10 :
+    #     sqlKMA = 'INSERT INTO `weatherdataENS10`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
+    #         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+    # elif modeltimes == 16 :
+    #     sqlKMA = 'INSERT INTO `weatherdataENS16`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
+    #         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
+    insert_query = "INSERT IGNORE INTO `tbl_kma_weather`(`C_scode`, `D_date`, `F_30cm_soil_temp`, `F_20cm_soil_temp`, `F_10cm_soil_temp`, `F_5cm_soil_temp`,\
+              `F_ground_temp`, `F_dmst_mtph_no`, `F_ground_state`, `C_visibility`, `F_min_cloud_cover`, `C_cloud_pattern`, `F_mid_low_cloud_cover`,\
+                  `F_total_cloud_cover`, `F_3hr_snowfall`, `F_snowfall`, `F_solar_radiation`, `F_daylight`, `F_sea_level_pressure`, `F_local_pressure`,\
+                      `F_dew_point_temp`, `F_vapor_pressure`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_precipitation`, `F_temp`) \
+                          VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    db_cursor.execute(insert_query,inputValue) 
     db_conn.commit()
     db_cursor.close()
     db_conn.close()
@@ -295,8 +329,10 @@ def update_Weather(modeltimes):
 
     conn = mysql.connector.connect(host=ENS_DB_HOST, port=ENS_DB_PORT, user=ENS_DB_USER, password=ENS_DB_PASSWORD, database=ENS_DB_NAME)
     cur = conn.cursor()
-    cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} {modeltimes}:00:00' AND '{dateToday} {modeltimes}:00:00'\
-                GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
+    # cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} {modeltimes}:00:00' AND '{dateToday} {modeltimes}:00:00'\
+    #             GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
+    cur.execute(f"SELECT * FROM tbl_kma_weather WHERE C_scode = 717805001 AND D_date BETWEEN '{dateYst} 00:00:00' AND '{dateYst} 23:00:00'\
+                GROUP BY DATE(D_date), HOUR(D_date) ORDER BY D_date ASC")
     row = cur.fetchall()
     cur.close()
     conn.close()
@@ -310,16 +346,11 @@ def update_Weather(modeltimes):
 
 
 @scheduler.task('cron', id='prediction_10', minute='50', hour='9')
-def prediction_at_10():
-    modeltimes = 10
-    update_Weather(modeltimes) #INPUT DATA
-    predict(modeltimes) #PREDICTION
-
-@scheduler.task('cron', id='prediction_16', minute='50', hour='15')
 def prediction_at_16():
     modeltimes = 16
     update_Weather(modeltimes) #INPUT DATA
     predict(modeltimes) #PREDICTION
+
 
 class getPrediction(Resource):
     def post(self):
@@ -423,4 +454,4 @@ def predPlot():
     return render_template('powerPlot.html')
 
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0', port=5000,use_reloader=False)
+    app.run(debug=True,host='0.0.0.0', port=5005,use_reloader=False)
