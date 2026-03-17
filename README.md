@@ -175,9 +175,9 @@ pv-power-api/
 
 ## Reference
 
-This project is related to research on solar power forecasting techniques:
+This project is part of the following published research:
 
-> Wu, Y.-K.; Huang, C.-L.; Phan, Q.-T.; Li, Y.-Y. "Completed Review of Various Solar Power Forecasting Techniques Considering Different Viewpoints." *Energies* 2022, 15, 3320. https://doi.org/10.3390/en15093320
+> Utama, I.B.K.Y.; Pamungkas, R.F.; Faridh, M.M.; Jang, Y.M. "Intelligent IoT Platform for Multiple PV Plant Monitoring." *Sensors* 2023, 23, 6674. https://doi.org/10.3390/s23156674
 
 ## Security
 
