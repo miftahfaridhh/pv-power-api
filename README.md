@@ -173,11 +173,13 @@ pv-power-api/
 └── README.md
 ```
 
-## Reference
+## References
 
 This project is part of the following published research:
 
 > Utama, I.B.K.Y.; Pamungkas, R.F.; Faridh, M.M.; Jang, Y.M. "Intelligent IoT Platform for Multiple PV Plant Monitoring." *Sensors* 2023, 23, 6674. https://doi.org/10.3390/s23156674
+
+> Utama, I.B.K.Y.; Tran, D.H.; Faridh, M.M.; Chung, B.D.; Jang, Y.M. "Development of an Intelligent IoT Platform for PV Power Plant Monitoring and Control." *ICUFN* 2023. https://doi.org/10.1109/icufn57995.2023.10199576
 
 ## Security
 
