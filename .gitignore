@@ -1,19 +1,21 @@
-all_train_data/717800001/10/training_history
-all_train_data/717800001/16/training_history
-all_train_data/717800001/10/train_loss_plot
-all_train_data/717800001/16/train_loss_plot
+# Environment
+.env
 
-all_train_data/717800002/10/training_history
-all_train_data/717800002/16/training_history
-all_train_data/717800002/10/train_loss_plot
-all_train_data/717800002/16/train_loss_plot
+# Model checkpoints and data
+train_data/
+train_data2021/
+all_train_data/
+*.pkl
 
-all_train_data/717800004/10/training_history
-all_train_data/717800004/16/training_history
-all_train_data/717800004/10/train_loss_plot
-all_train_data/717800004/16/train_loss_plot
+# Uploads
+static/uploads/
 
-all_train_data/717800005/10/training_history
-all_train_data/717800005/16/training_history
-all_train_data/717800005/10/train_loss_plot
-all_train_data/717800005/16/train_loss_plot
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/

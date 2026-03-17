@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask import Flask, render_template
 from flask_restful import Resource, Api, reqparse
 import pandas as pd
@@ -28,6 +33,19 @@ import json
 import threading
 import mysql.connector
 import mysql.connector as mariadb
+
+# Database credentials from environment variables
+PV_DB_HOST = os.getenv("PV_DB_HOST")
+PV_DB_USER = os.getenv("PV_DB_USER")
+PV_DB_PASSWORD = os.getenv("PV_DB_PASSWORD")
+PV_DB_NAME = os.getenv("PV_DB_NAME")
+PV_DB_PORT = int(os.getenv("PV_DB_PORT", 12360))
+
+ENS_DB_HOST = os.getenv("ENS_DB_HOST")
+ENS_DB_PORT = os.getenv("ENS_DB_PORT", "3306")
+ENS_DB_USER = os.getenv("ENS_DB_USER")
+ENS_DB_PASSWORD = os.getenv("ENS_DB_PASSWORD")
+ENS_DB_NAME = os.getenv("ENS_DB_NAME")
 
 app = Flask(__name__)
 api = Api(app)

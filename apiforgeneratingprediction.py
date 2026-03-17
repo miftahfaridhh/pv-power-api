@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from flask import Flask, render_template
 from flask_restful import Resource, Api, reqparse
 import pandas as pd
@@ -28,6 +33,13 @@ import json
 import threading
 import mysql.connector
 import mysql.connector as mariadb
+
+# Database credentials from environment variables
+PV_DB_HOST = os.getenv("PV_DB_HOST")
+PV_DB_USER = os.getenv("PV_DB_USER")
+PV_DB_PASSWORD = os.getenv("PV_DB_PASSWORD")
+PV_DB_NAME = os.getenv("PV_DB_NAME")
+PV_DB_PORT = int(os.getenv("PV_DB_PORT", 12360))
 
 def create_model(MODEL_TYPE):
     data_features = 12
@@ -290,52 +302,6 @@ def predict(modeltimes, dateToday):
     print(f"======= Prediction Finished for {MODELTIMES} o'clock =======")
 
 
-# def post_data_kma(inputValue, modeltimes):
-#     db_conn = mariadb.connect(host=PV_DB_HOST, user=PV_DB_USER, password=PV_DB_PASSWORD, database=PV_DB_NAME, port=PV_DB_PORT)
-#     db_cursor = db_conn.cursor()
-#     if modeltimes == 10 :
-#         sqlKMA = 'INSERT INTO `weatherdataENS10`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
-#             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-#     elif modeltimes == 16 :
-#         sqlKMA = 'INSERT INTO `weatherdataENS16`(`C_scode`, `D_date`, `I_dev`, `I_comyn`, `F_temp`, `F_humidity`, `F_wind_direction`, `F_wind_speed`, `F_percipitation`, `F_insolation_slope`, `F_insolation_horizon`, `F_atmosp_press`, `F_dewpoint`, `F_dat1`, `F_dat2`, `F_dat3`, `F_dat4`, `F_dat5`)\
-#             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)'
-#     db_cursor.execute(sqlKMA,inputValue) 
-#     db_conn.commit()
-#     db_cursor.close()
-#     db_conn.close()
-
-# def update_Weather(modeltimes):
-#     dateToday = datetime.now().date()
-#     dateYst = (dateToday - timedelta(days=1)).strftime('%Y-%m-%d')
-
-#     conn = mysql.connector.connect(host=ENS_DB_HOST, port=ENS_DB_PORT, user=ENS_DB_USER, password=ENS_DB_PASSWORD, database=ENS_DB_NAME)
-#     cur = conn.cursor()
-#     cur.execute(f"SELECT * FROM tbl_weather_dat WHERE C_scode = 717804001 AND D_date BETWEEN '{dateYst} {modeltimes}:00:00' AND '{dateToday} {modeltimes}:00:00'\
-#                 GROUP BY DATE(D_date),HOUR(D_date) ORDER BY `tbl_weather_dat`.`D_date` ASC")
-#     row = cur.fetchall()
-#     cur.close()
-#     conn.close()
-
-#     for i in range (len(row)):
-#         inputValue = []
-#         for j in range (len(row[i])):
-#             inputValue.append(row[i][j])
-#         post_data_kma(inputValue, modeltimes)
-#     print(f"Update Weather Data For Prediction at {modeltimes}")
-
-
-# @scheduler.task('cron', id='prediction_10', minute='50', hour='9')
-# def prediction_at_10():
-#     modeltimes = 10
-#     update_Weather(modeltimes) #INPUT DATA
-#     predict(modeltimes) #PREDICTION
-
-# @scheduler.task('cron', id='prediction_16', minute='50', hour='15')
-# def prediction_at_16():
-#     modeltimes = 16
-#     update_Weather(modeltimes) #INPUT DATA
-#     predict(modeltimes) #PREDICTION
-    
 # Tanggal awal
 tanggal_awal = datetime(2024, 7, 1).date()
 
